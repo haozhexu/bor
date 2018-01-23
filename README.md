@@ -89,4 +89,8 @@ Possible EXIF data (separated by comma when specified for -e):
 ./bor.sh -b 5%x10% -e cameramodel,focallength35,fnumber,exptime,isospeed,stripexif -f medium -r 80% -q 70 photo.jpg photo_output.jpg
 ```
 
+Generated photo:
+
+![Generated photo](https://github.com/haozhexu/bor/raw/master/photo_output.jpg "Generate photo")
+
 I'll keep improving this script, please let me know how you think.
