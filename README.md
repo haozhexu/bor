@@ -1,7 +1,7 @@
 # bor
 A script for adding border to image with custom options
 
-（中文请看[这里](./README.md)）
+（中文请看[这里](./README.cn.md)）
 
 Recently I started writting blog posts on my website [haozhexu.me](https://haozhexu.me), and sometimes need to include photos with EXIF information. I like the idea of having white border around photos, just like Polaroid and Fujifilm instant photos, so I made this script to make it simple.
 
