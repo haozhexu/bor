@@ -91,6 +91,6 @@ Possible EXIF data (separated by comma when specified for -e):
 
 Generated photo:
 
-![Generated photo](https://github.com/haozhexu/bor/raw/master/photo_output.jpg "Generate photo")
+![Generated photo](./photo_output.jpg "Generate photo")
 
 I'll keep improving this script, please let me know how you think.
