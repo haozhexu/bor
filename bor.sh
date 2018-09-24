@@ -7,12 +7,12 @@ ARGS_BORDERCOLOR=
 ARGS_ANNOTATION_TEXT=
 ARGS_EXIF_OPTIONS=
 ARGS_FONT_SIZE="medium"
-
+ARGS_CUSTOM_TEXT=
 DEBUG_ENABLED=""
 
 usage() {
     echo "Usage:"
-    echo "`basename $0`  [-b border options] [-d](enable debug output) [-e EXIF options] [-f (small|medium|large)] [-q quality] [-r resize options] input_file [output_file]"
+    echo "`basename $0`  [-b border options] [-d](enable debug output) [-e EXIF options] [-f (small|medium|large)] [-q quality] [-r resize options] [-t custom text] input_file [output_file]"
 }
 
 decho() {
@@ -87,7 +87,7 @@ if [ $# -eq 0 ]; then
     exit
 fi
 
-while getopts :b:de:f:q:r: OPTION
+while getopts :b:de:f:q:r:t: OPTION
 do
     case $OPTION in
         b)
@@ -109,13 +109,16 @@ do
         r)
             ARGS_RESIZE=$OPTARG
             ;;
+        t)
+            ARGS_CUSTOM_TEXT=$OPTARG
+            ;;
         \?)
             usage
             ;;
     esac
 done
 
-if [ -z "$ARGS_RESIZE" -a -z "$ARGS_QUALITY" -a -z "$ARGS_BORDER" -a -z "$ARGS_ANNOTATION_TEXT" ]; then
+if [ -z "$ARGS_RESIZE" -a -z "$ARGS_QUALITY" -a -z "$ARGS_BORDER" ]; then
     echo "What do you want to do, without necessary options specified?"
     exit
 fi
@@ -171,28 +174,35 @@ if [ ! -z "$ARGS_BORDER" ]; then
 fi
 
 COMMAND=""
+WIDTH=`eval "identify -format '%w' ${INPUT_FILE}"`
+HEIGHT=`eval "identify -format '%h' ${INPUT_FILE}"`
+CALC_BORDER_SIZE_W="($WIDTH - $WIDTH_WO_BORDER) / 2"
+CALC_BORDER_SIZE_H="($HEIGHT - $HEIGHT_WO_BORDER) / 2"
+BORDER_W=`echo "$CALC_BORDER_SIZE_W" | bc`
+BORDER_H=`echo "$CALC_BORDER_SIZE_H" | bc`
+
+FONT_SIZE=
+if [[ "$ARGS_FONT_SIZE" == small ]]; then
+    FONT_SIZE=`echo "${BORDER_H} * 0.2" | bc`
+elif [[ "$ARGS_FONT_SIZE" == medium ]]; then
+    FONT_SIZE=`echo "${BORDER_H} * 0.3" | bc`
+else
+    FONT_SIZE=`echo "${BORDER_H} * 0.5" | bc`
+fi
+
+OFFSET_H=`echo "${BORDER_H} - ${FONT_SIZE} - (${FONT_SIZE} / 10)" | bc`
+
+decho "Border size ${BORDER_W} x ${BORDER_H}"
+
+if [ ! -z "$ARGS_CUSTOM_TEXT" -a ! -z "$ARGS_BORDER" ]; then
+    COMMAND="convert ${INPUT_FILE} -gravity Southwest -pointsize ${FONT_SIZE} -annotate +${BORDER_W}+${OFFSET_H} \"${ARGS_CUSTOM_TEXT}\" ${OUTPUT_FILE}"
+    decho "${COMMAND}"
+    eval $COMMAND
+    INPUT_FILE=$OUTPUT_FILE
+fi
 
 if [ ! -z "$ARGS_ANNOTATION_TEXT" -a ! -z "$ARGS_BORDER" ]; then
-    WIDTH=`eval "identify -format '%w' ${INPUT_FILE}"`
-    HEIGHT=`eval "identify -format '%h' ${INPUT_FILE}"`
-
-    CALC_W="($WIDTH - $WIDTH_WO_BORDER) / 2"
-    CALC_H="($HEIGHT - $HEIGHT_WO_BORDER) / 2"
-    OFFSET_W=`echo "$CALC_W" | bc`
-    OFFSET_H=`echo "$CALC_H" | bc`
-
-    FONT_SIZE=
-    if [[ "$ARGS_FONT_SIZE" == small ]]; then
-        FONT_SIZE=`echo "${OFFSET_H} * 0.2" | bc`
-    elif [[ "$ARGS_FONT_SIZE" == medium ]]; then
-        FONT_SIZE=`echo "${OFFSET_H} * 0.3" | bc`
-    else
-        FONT_SIZE=`echo "${OFFSET_H} * 0.5" | bc`
-    fi
-
-    OFFSET_H=`echo "${OFFSET_H} - ${FONT_SIZE} - (${FONT_SIZE} / 10)" | bc`
-
-    COMMAND="convert ${INPUT_FILE} -gravity southeast -pointsize ${FONT_SIZE} -annotate +${OFFSET_W}+${OFFSET_H} \"${ARGS_ANNOTATION_TEXT}\" ${OUTPUT_FILE}"
+    COMMAND="convert ${INPUT_FILE} -gravity Southeast -pointsize ${FONT_SIZE} -annotate +${BORDER_W}+${OFFSET_H} \"${ARGS_ANNOTATION_TEXT}\" ${OUTPUT_FILE}"
     decho "${COMMAND}"
     eval $COMMAND
 fi
@@ -200,3 +210,4 @@ fi
 if [ ! -z "$ARGS_STRIP_EXIF" ]; then
     eval "exiftool -all= ${OUTPUT_FILE}"
 fi
+    
