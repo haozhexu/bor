@@ -67,7 +67,7 @@ bor.sh 是个命令行脚本，可以接收若干选项，图片文件名是必�
 加上指定的拍摄参数，中等字体大小
 
 ```
-./bor.sh -b 5%x10% -e cameramodel,focallength35,fnumber,exptime,isospeed,stripexif -f medium photo.jpg
+./bor.sh -b 5%x10% -e cameramodel,focallength,fnumber,exptime,isospeed,stripexif -f medium photo.jpg
 ```
 
 可选的字体大小：
@@ -79,7 +79,7 @@ bor.sh 是个命令行脚本，可以接收若干选项，图片文件名是必�
 可选的EXIF参数 (用在 -e 后，以逗号分开):
 
 * cameramodel
-* focallength35
+* focallength
 * fnumber
 * exptime
 * isospeed
@@ -88,10 +88,32 @@ bor.sh 是个命令行脚本，可以接收若干选项，图片文件名是必�
 **所有选项都指定的例子**
 
 ```
-./bor.sh -b 5%x10% -e cameramodel,focallength35,fnumber,exptime,isospeed,stripexif -f medium -r 80% -q 70 photo.jpg photo_output.jpg
+./bor.sh -b 5%x10% -e cameramodel,focallength,fnumber,exptime,isospeed,stripexif -f medium -r 80% -q 70 photo.jpg photo_output.jpg
 ```
 
-生成的相片：
+## run_for_all.sh
+
+> ./run_for_all.sh '~/Photos/*.jpg' '_bor'
+
+将`~/Photos`目录中所有jpg图片加上边框以及EXIF信息，输出为每个文件的文件名加上`_bor`后缀。
+
+```
+photo001.jpg
+photo002.jpg
+…
+photo009.jpg
+```
+
+生成：
+
+```
+photo001_bor.jpg
+photo002_bor.jpg
+…
+photo009_bor.jpg
+```
+
+## 生成的相片
 
 ![生成的相片](./photo_output.jpg "生成的相片")
 
