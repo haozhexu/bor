@@ -7,12 +7,12 @@ ARGS_BORDERCOLOR=
 ARGS_ANNOTATION_TEXT=
 ARGS_EXIF_OPTIONS=
 ARGS_FONT_SIZE="medium"
-
+ARGS_CUSTOM_TEXT=
 DEBUG_ENABLED=""
 
 usage() {
     echo "Usage:"
-    echo "`basename $0`  [-b border options] [-d](enable debug output) [-e EXIF options] [-f (small|medium|large)] [-q quality] [-r resize options] input_file [output_file]"
+    echo "`basename $0`  [-b border options] [-d](enable debug output) [-e EXIF options] [-f (small|medium|large)] [-q quality] [-r resize options] [-t custom text] input_file [output_file]"
 }
 
 decho() {
@@ -25,14 +25,17 @@ apply_exif_annotation()
 {
     if [ $# -eq 2 ]; then
         decho "Apply exif annotation: $1 for $2"
-        declare `convert -ping "$2" -format "cameramodel=%[EXIF:model]\n focallength35=%[EXIF:FocalLengthIn35mmFilm]\n fnumber=%[EXIF:FNumber]\n exptime=%[EXIF:ExposureTime]\n isospeed=%[EXIF:ISOSpeedRatings]\n" info:`
+        declare `convert -ping "$2" -format "cameramodel=%[EXIF:model]\n focallength=%[EXIF:FocalLength]\n fnumber=%[EXIF:FNumber]\n exptime=%[EXIF:ExposureTime]\n isospeed=%[EXIF:PhotographicSensitivity]\n" info:`
         fnumber1=`echo $fnumber | cut -d/ -f1`
         fnumber2=`echo $fnumber | cut -d/ -f2`
         fnumber=`echo "scale=1; $fnumber1/$fnumber2" | bc`
         exptime1=`echo $exptime | cut -d/ -f1`
         exptime2=`echo $exptime | cut -d/ -f2`
         exptime=`echo "scale=0; $exptime2/$exptime1" | bc`
-        exiftext=`echo "$cameramodel ${focallength35}mm, F$fnumber, 1/$exptime, ISO $isospeed"`
+        fl1=`echo $focallength | cut -d/ -f1`
+        fl2=`echo $focallength | cut -d/ -f2`
+        focallength=`echo "scale=0; $fl1/$fl2" | bc`
+        exiftext=`echo "$cameramodel $focallength, F$fnumber, 1/$exptime, ISO $isospeed"`
 
         decho "EXIF: $exiftext"
 
@@ -42,8 +45,8 @@ apply_exif_annotation()
         if [[ "$EXIF_OPTIONS" == *cameramodel* ]]; then
             EXIF_FORMAT="$cameramodel"
         fi
-        if [[ "$EXIF_OPTIONS" == *focallength35* ]]; then
-            EXIF_FORMAT="${EXIF_FORMAT} ${focallength35}mm"
+        if [[ "$EXIF_OPTIONS" == *focallength* ]]; then
+            EXIF_FORMAT="${EXIF_FORMAT} ${focallength}mm"
         fi
         if [[ "$EXIF_OPTIONS" == *fnumber* ]]; then
             EXIF_FORMAT="${EXIF_FORMAT} F/${fnumber}"
@@ -52,7 +55,7 @@ apply_exif_annotation()
             EXIF_FORMAT="${EXIF_FORMAT} 1/${exptime}"
         fi
         if [[ "$EXIF_OPTIONS" == *isospeed* ]]; then
-            EXIF_FORMAT="${EXIF_FORMAT} ${isospeed}"
+            EXIF_FORMAT="${EXIF_FORMAT} ISO ${isospeed}"
         fi
         if [[ "$EXIF_OPTIONS" == *stripexif* ]]; then
             ARGS_STRIP_EXIF="Y"
@@ -87,7 +90,7 @@ if [ $# -eq 0 ]; then
     exit
 fi
 
-while getopts :b:de:f:q:r: OPTION
+while getopts :b:de:f:q:r:t: OPTION
 do
     case $OPTION in
         b)
@@ -109,13 +112,16 @@ do
         r)
             ARGS_RESIZE=$OPTARG
             ;;
+        t)
+            ARGS_CUSTOM_TEXT=$OPTARG
+            ;;
         \?)
             usage
             ;;
     esac
 done
 
-if [ -z "$ARGS_RESIZE" -a -z "$ARGS_QUALITY" -a -z "$ARGS_BORDER" -a -z "$ARGS_ANNOTATION_TEXT" ]; then
+if [ -z "$ARGS_RESIZE" -a -z "$ARGS_QUALITY" -a -z "$ARGS_BORDER" ]; then
     echo "What do you want to do, without necessary options specified?"
     exit
 fi
@@ -171,28 +177,35 @@ if [ ! -z "$ARGS_BORDER" ]; then
 fi
 
 COMMAND=""
+WIDTH=`eval "identify -format '%w' ${INPUT_FILE}"`
+HEIGHT=`eval "identify -format '%h' ${INPUT_FILE}"`
+CALC_BORDER_SIZE_W="($WIDTH - $WIDTH_WO_BORDER) / 2"
+CALC_BORDER_SIZE_H="($HEIGHT - $HEIGHT_WO_BORDER) / 2"
+BORDER_W=`echo "$CALC_BORDER_SIZE_W" | bc`
+BORDER_H=`echo "$CALC_BORDER_SIZE_H" | bc`
+
+FONT_SIZE=
+if [[ "$ARGS_FONT_SIZE" == small ]]; then
+    FONT_SIZE=`echo "${BORDER_H} * 0.2" | bc`
+elif [[ "$ARGS_FONT_SIZE" == medium ]]; then
+    FONT_SIZE=`echo "${BORDER_H} * 0.3" | bc`
+else
+    FONT_SIZE=`echo "${BORDER_H} * 0.5" | bc`
+fi
+
+OFFSET_H=`echo "${BORDER_H} - ${FONT_SIZE} - (${FONT_SIZE} / 10)" | bc`
+
+decho "Border size ${BORDER_W} x ${BORDER_H}"
+
+if [ ! -z "$ARGS_CUSTOM_TEXT" -a ! -z "$ARGS_BORDER" ]; then
+    COMMAND="convert ${INPUT_FILE} -gravity southwest -pointsize ${FONT_SIZE} -annotate +${BORDER_W}+${OFFSET_H} \"${ARGS_CUSTOM_TEXT}\" ${OUTPUT_FILE}"
+    decho "${COMMAND}"
+    eval $COMMAND
+    INPUT_FILE=$OUTPUT_FILE
+fi
 
 if [ ! -z "$ARGS_ANNOTATION_TEXT" -a ! -z "$ARGS_BORDER" ]; then
-    WIDTH=`eval "identify -format '%w' ${INPUT_FILE}"`
-    HEIGHT=`eval "identify -format '%h' ${INPUT_FILE}"`
-
-    CALC_W="($WIDTH - $WIDTH_WO_BORDER) / 2"
-    CALC_H="($HEIGHT - $HEIGHT_WO_BORDER) / 2"
-    OFFSET_W=`echo "$CALC_W" | bc`
-    OFFSET_H=`echo "$CALC_H" | bc`
-
-    FONT_SIZE=
-    if [[ "$ARGS_FONT_SIZE" == small ]]; then
-        FONT_SIZE=`echo "${OFFSET_H} * 0.2" | bc`
-    elif [[ "$ARGS_FONT_SIZE" == medium ]]; then
-        FONT_SIZE=`echo "${OFFSET_H} * 0.3" | bc`
-    else
-        FONT_SIZE=`echo "${OFFSET_H} * 0.5" | bc`
-    fi
-
-    OFFSET_H=`echo "${OFFSET_H} - ${FONT_SIZE} - (${FONT_SIZE} / 10)" | bc`
-
-    COMMAND="convert ${INPUT_FILE} -gravity southeast -pointsize ${FONT_SIZE} -annotate +${OFFSET_W}+${OFFSET_H} \"${ARGS_ANNOTATION_TEXT}\" ${OUTPUT_FILE}"
+    COMMAND="convert ${INPUT_FILE} -gravity Southeast -pointsize ${FONT_SIZE} -annotate +${BORDER_W}+${OFFSET_H} \"${ARGS_ANNOTATION_TEXT}\" ${OUTPUT_FILE}"
     decho "${COMMAND}"
     eval $COMMAND
 fi
@@ -200,3 +213,4 @@ fi
 if [ ! -z "$ARGS_STRIP_EXIF" ]; then
     eval "exiftool -all= ${OUTPUT_FILE}"
 fi
+    

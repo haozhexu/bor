@@ -67,7 +67,7 @@ add border around photo.jpg, the border is 5% of image width and 10% of image he
 add specified EXIF information at bottom right of image border, medium font size
 
 ```
-./bor.sh -b 5%x10% -e cameramodel,focallength35,fnumber,exptime,isospeed,stripexif -f medium photo.jpg
+./bor.sh -b 5%x10% -e cameramodel,focallength,fnumber,exptime,isospeed,stripexif -f medium photo.jpg
 ```
 
 Possible font sizes:
@@ -79,7 +79,7 @@ Possible font sizes:
 Possible EXIF data (separated by comma when specified for -e):
 
 * cameramodel
-* focallength35
+* focallength
 * fnumber
 * exptime
 * isospeed
@@ -88,10 +88,32 @@ Possible EXIF data (separated by comma when specified for -e):
 **Example with all options specified**
 
 ```
-./bor.sh -b 5%x10% -e cameramodel,focallength35,fnumber,exptime,isospeed,stripexif -f medium -r 80% -q 70 photo.jpg photo_output.jpg
+./bor.sh -b 5%x10% -e cameramodel,focallength,fnumber,exptime,isospeed,stripexif -f medium -r 80% -q 70 photo.jpg photo_output.jpg
 ```
 
-Generated photo:
+## run_for_all.sh
+
+> ./run_for_all.sh '~/Photos/*.jpg' '_bor'
+
+Generate new photos for each jpg photo in `~/Photos` with border and EXIF added, each generated file will have the same filename as original one and `_bor` suffix.
+
+```
+photo001.jpg
+photo002.jpg
+…
+photo009.jpg
+```
+
+Generates
+
+```
+photo001_bor.jpg
+photo002_bor.jpg
+…
+photo009_bor.jpg
+```
+
+## Generated Photo
 
 ![Generated photo](./photo_output.jpg "Generate photo")
 
